@@ -1,0 +1,9 @@
+{
+  "contract": "fiducia union-lock-v2 fencing, lease expiry, and snapshot recovery",
+  "linear_issue": "DEN-80",
+  "source_repository": "https://github.com/fiducia-cloud/fiducia-node.rs",
+  "source_revision": "b6352898e9eb781c96454735bd09b4e9c50dbbbd",
+  "formal_manifest": "formal/fm.toml",
+  "formal_specification": "formal/union_lock.qnt",
+  "rust_refinement": "tests/formal_union_lock_refinement.rs"
+}

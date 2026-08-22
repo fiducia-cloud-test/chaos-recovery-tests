@@ -17,6 +17,9 @@ required = {
     "scripts/verify_repository.py",
     ".github/workflows/deep-tests.yml",
     "src/deep_tests/__init__.py",
+    "src/deep_tests/fenced_lease_model.py",
+    "tests/test_fenced_lease_recovery.py",
+    "source-pins.json",
 }
 missing = sorted(path for path in required if not (ROOT / path).exists())
 if missing:
@@ -55,4 +58,10 @@ if metadata.get("bootstrap_operation") != "deep-test-fleet-20260808":
     raise SystemExit("bootstrap operation identity drift")
 if not str(metadata.get("organization", "")).endswith("-test"):
     raise SystemExit("repository is not bound to a test organization")
+pins = json.loads((ROOT / "source-pins.json").read_text(encoding="utf-8"))
+if not re.fullmatch(r"[0-9a-f]{40}", str(pins.get("source_revision", ""))):
+    raise SystemExit("source pin must be an exact Git commit")
+for key in ("formal_manifest", "formal_specification", "rust_refinement"):
+    if not pins.get(key):
+        raise SystemExit(f"source contract is missing {key}")
 print(f"validated {metadata['organization']}/{metadata['repository']} suite={metadata['suite']}")
