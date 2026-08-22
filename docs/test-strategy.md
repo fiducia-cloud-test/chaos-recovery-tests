@@ -14,6 +14,9 @@ Primary organization: `fiducia-cloud`
 - the suite runs without network access by default;
 - a product adapter must preserve the reference model and publish the seed and minimized trace on failure;
 - scheduled CI is defense in depth; pull-request and main-branch checks remain authoritative.
+- every downstream write carries an installed fencing token, and a partitioned former holder cannot overwrite a successor;
+- snapshot recovery preserves the last minted token and fails closed when an authority snapshot predates the downstream fence;
+- bounded exhaustive exploration and deterministic randomized traces exercise the same safety contract independently of the production implementation.
 
 ## Expansion path
 
