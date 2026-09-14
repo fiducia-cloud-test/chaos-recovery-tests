@@ -1,0 +1,50 @@
+name: lease expiry takeover chaos admission
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  expiry-takeover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22.22.1"
+      - name: Prove expiry takeover rejects stale renew and release
+        shell: bash
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          let nextFence = 0;
+          let lease = null;
+          const acquire = (holder, now, ttl) => {
+            if (lease && lease.expires_at > now && lease.holder !== holder) throw new Error('lease_held');
+            if (lease && lease.expires_at > now && lease.holder === holder) return lease;
+            lease = { holder, fencing_token: ++nextFence, expires_at: now + ttl };
+            return lease;
+          };
+          const renew = (holder, fence, now, ttl) => {
+            if (!lease || lease.holder !== holder || lease.fencing_token !== fence || lease.expires_at <= now) throw new Error('stale_lease');
+            lease.expires_at = now + ttl;
+            return lease;
+          };
+          const release = (holder, fence) => {
+            if (!lease || lease.holder !== holder || lease.fencing_token !== fence) throw new Error('stale_lease');
+            lease = null;
+          };
+          const a = acquire('node-a', 0, 30);
+          assert.throws(() => acquire('node-b', 10, 30), /lease_held/);
+          const b = acquire('node-b', 31, 30);
+          assert.ok(b.fencing_token > a.fencing_token);
+          assert.throws(() => renew('node-a', a.fencing_token, 32, 30), /stale_lease/);
+          assert.throws(() => release('node-a', a.fencing_token), /stale_lease/);
+          assert.equal(renew('node-b', b.fencing_token, 40, 30).expires_at, 70);
+          NODE
